@@ -78,7 +78,7 @@ public class EventBusTest {
     plugin.dataHandler.addJail("jail0", Vector.getRandom().toLocation(server.addSimpleWorld("world0")));
 
     final PlayerMock player = server.addPlayer();
-    plugin.dataHandler.addJailedPlayer(player, "jail0", Util.NIL_UUID, "test", 3600L);
+    plugin.dataHandler.addJailedPlayer(player, "jail0", Util.NIL_UUID, "test", 3600L, "super duper test");
     plugin.dataHandler.releaseJailedPlayer(player.getUniqueId(), Util.NIL_UUID, "test");
   }
 }

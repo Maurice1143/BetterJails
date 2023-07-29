@@ -10,7 +10,7 @@ commands:
   jail:
     permission: "betterjails.jail"
     permission-message: "§cYou are not allowed to run this command"
-    usage: "§cUsage: /jail <player> <jail> <time>\n§cUsage: /jail info <player>"
+    #usage: "§cUsage: /jail <player> <jail> <time> <reason>\n§cUsage: /jail info <player>"
     description: "Sends a player to the provided jail, and won't be teleported back until they spend online the time provided."
   jails:
     permission: "betterjails.jails"
@@ -39,9 +39,15 @@ commands:
 
 permissions:
   betterjails.jail:
+    default: "true"
+  betterjails.jail.setinjail:
     default: "op"
   betterjails.jail.exempt:
     default: "op"
+  betterjails.jail.info:
+    default: "op"
+  betterjails.jail.owninfo:
+    default: "true"
   betterjails.jails:
     default: "op"
   betterjails.unjail:

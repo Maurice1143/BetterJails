@@ -78,6 +78,7 @@ public class DataHandler {
   public static final String JAIL_FIELD = "jail";
   public static final String JAILED_BY_FIELD = "jailed-by";
   public static final String SECONDS_LEFT_FIELD = "seconds-left";
+  public static final String REASON_FIELD = "reason";
 
   @Deprecated private static final String LEGACY_UNJAILED_FIELD = "unjailed";
   @Deprecated private static final String LEGACY_LASTLOCATION_FIELD = "lastlocation";
@@ -254,7 +255,8 @@ public class DataHandler {
       final String jailName,
       final UUID jailer,
       final @Nullable String jailerName,
-      final long secondsLeft
+      final long secondsLeft,
+      final String reason
   )
       throws IOException {
     final YamlConfiguration yaml = retrieveJailedPlayer(player.getUniqueId());
@@ -275,6 +277,7 @@ public class DataHandler {
       yaml.set(JAILED_BY_FIELD, jailerName);
     }
     yaml.set(SECONDS_LEFT_FIELD, secondsLeft);
+    yaml.set(REASON_FIELD, reason);
     yaml.set(IS_RELEASED_FIELD, false);
 
     if (isPlayerOnline && !isPlayerJailed) {
@@ -488,6 +491,10 @@ public class DataHandler {
 
   public List<String> getAllParentGroups(final UUID uuid) {
     return retrieveJailedPlayer(uuid).getStringList(EXTRA_GROUPS_FIELD);
+  }
+
+  public String getReason(final UUID uuid, String def) {
+    return retrieveJailedPlayer(uuid).getString(REASON_FIELD, def);
   }
 
   public void updateSecondsLeft(final UUID uuid) {

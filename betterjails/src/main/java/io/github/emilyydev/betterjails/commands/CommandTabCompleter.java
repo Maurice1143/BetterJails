@@ -56,35 +56,45 @@ public class CommandTabCompleter implements TabCompleter {
       case "jail": {
         switch (args.length) {
           case 1:
-            if ("info".startsWith(args[0].toLowerCase(Locale.ROOT))) {
-              suggestionsBuilder.add("info");
-            }
-            for (final Player player : this.plugin.getServer().getOnlinePlayers()) {
-              if (player.getName().toLowerCase(Locale.ROOT).startsWith(args[0].toLowerCase(Locale.ROOT))) {
-                suggestionsBuilder.add(player.getName());
+            if (sender.hasPermission("betterjails.jail.owninfo")) {
+              if ("info".startsWith(args[0].toLowerCase(Locale.ROOT))) {
+                suggestionsBuilder.add("info");
               }
             }
-            break;
-
-          case 2:
-            if (!args[0].equalsIgnoreCase("info")) {
-              for (final String jailName : this.plugin.dataHandler.getJails().keySet()) {
-                if (jailName.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                  suggestionsBuilder.add(jailName);
-                }
-              }
-            } else {
+            if (sender.hasPermission("betterjails.jail.setinjail")) {
               for (final Player player : this.plugin.getServer().getOnlinePlayers()) {
-                if (player.getName().toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                if (player.getName().toLowerCase(Locale.ROOT).startsWith(args[0].toLowerCase(Locale.ROOT))) {
                   suggestionsBuilder.add(player.getName());
                 }
               }
             }
+
+            break;
+
+          case 2:
+              if (!args[0].equalsIgnoreCase("info")) {
+                if (sender.hasPermission("betterjails.jail.setinjail")) {
+                  for (final String jailName : this.plugin.dataHandler.getJails().keySet()) {
+                    if (jailName.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                      suggestionsBuilder.add(jailName);
+                    }
+                  }
+                }
+              } else if (sender.hasPermission("betterjails.jail.info")) {
+                for (final Player player : this.plugin.getServer().getOnlinePlayers()) {
+                  if (player.getName().toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                    suggestionsBuilder.add(player.getName());
+                  }
+                }
+              }
+
             break;
 
           case 3:
-            if (!args[0].equals("info") && args[2].length() < 2) {
-              suggestionsBuilder.add("24h", "12h", "6h", "3h", "30m");
+            if (sender.hasPermission("betterjails.jail.setinjail")) {
+              if (!args[0].equals("info") && args[2].length() < 2) {
+                suggestionsBuilder.add("24h", "12h", "6h", "3h", "30m");
+              }
             }
             break;
         }

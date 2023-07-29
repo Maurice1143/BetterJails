@@ -73,6 +73,14 @@ public interface Util {
     });
   }
 
+  static String convertStringArrayToString(String[] arr, String delimiter) {
+    StringBuilder sb = new StringBuilder();
+    for (Object obj : arr)
+      sb.append(obj.toString()).append(delimiter);
+    return sb.substring(0, sb.length() - 1);
+
+  }
+
   @SuppressWarnings({ "unchecked", "rawtypes" })
   static <T> Collector<T, ImmutableSet.Builder<T>, ImmutableSet<T>> toImmutableSet() {
     return (Collector) IMMUTABLE_SET_COLLECTOR;

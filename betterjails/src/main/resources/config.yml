@@ -27,21 +27,28 @@ messages:
   # · {player}: player that executes the command.
   # · {jail}: jail name to where the prisoner will be sent.
   # · {time}: time argument provided.
-  jailSuccess: "&c{prisoner} &6has been jailed by &c{player} &6for &c{time}&6."
+  # · {reason}: reason argument provided.
+  jailSuccess: "&c{prisoner} &6has been jailed by &c{player} &6for &c{time}&6. Reason: {reason}"
+  jailInfoPrisoner: "&6You got jailed by {player} for {time} because of {reason}"
   jailFailedPlayerNeverJoined: "&cPlayer &4{prisoner} &cnever joined this server."
   jailFailedPlayerExempt: "&4{prisoner} &ccannot be jailed."
   jailFailedJailNotFound: "&cJail &4{jail} &cnot found."
   jailFailedTimeIncorrect: "&cThe time provided is not valid."
+  jailCmdUsage: "&cUsage: /jail <player> <jail> <time> <reason>"
   # Placeholders for /jail info:
   # · {prisoner}: player to retrieve the status and info.
   # · {player}: player that executes the command.
   infoFailedPlayerNotJailed: "&6The player you are requesting the information from is not currently serving a sentence."
   infoFailedPlayerNeverJoined: "&6Player &c{prisoner} &6never joined this server."
+  infoCmdUsage: "&cUsage: /jail info <player>"
+  ownInfoFailedPlayerNotJailed: "&6You are not in jail."
+  ownInfoCmdUsage: "§cUsage: /jail info"
 
   # Placeholders for /unjail:
   # · {prisoner}: player to be unjailed.
   # · {player}: player that executes the command.
   unjailSuccess: "&c{prisoner} &6has been unjailed by &c{player}&6."
+  unjailInfoPrisoner: "You got unjailed by {player}"
   unjailFailedPlayerNotJailed: "&c{prisoner} &6could not be unjailed, player wasn't jailed."
   unjailFailedPlayerNeverJoined: "&6Player &c{prisoner} &6never joined this server."
 
@@ -57,6 +64,24 @@ messages:
   # · {player}: player that executes the command.
   reload: "&6Files reloaded successfully!"
   save: "&6Files saved successfully!"
+
+  jailInfoText: "&7Info for jailed player:\n\n
+      &7· Name: &f{prisoner}\n
+      &7· UUID: &f{uuid}\n
+      &7· Time left: &f{time}{timeUnit}\n
+      &7· Jailed in jail: &f{jail}\n
+      &7· Jailed by: &f{player}\n
+      &7· Location before jailed: &f{lastLocation}\n
+      &7· Primary group: &f{primaryGroup}\n
+      &7· Reason: &f{reason}\n
+      &7· All parent groups: &f{parentGroups}
+    "
+
+  jailOwnInfoText: "&7Jail Info:\n\n
+      &7· Time left: &f{time}{timeUnit}\n
+      &7· Jailed by: &f{player}\n
+      &7· Reason: &f{reason}\n
+    "
 
   # Placeholders for /jails premessages:
   # · None :(

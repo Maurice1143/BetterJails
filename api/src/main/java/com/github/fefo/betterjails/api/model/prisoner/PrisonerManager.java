@@ -65,7 +65,7 @@ public interface PrisonerManager {
    * @param duration duration of the jailing time
    * @return the prisoner representing the player
    */
-  @NotNull Prisoner jailPlayer(@NotNull UUID uuid, @NotNull Jail jail, @NotNull Duration duration);
+  @NotNull Prisoner jailPlayer(@NotNull UUID uuid, @NotNull Jail jail, @NotNull Duration duration, String reason);
 
   /**
    * Releases a prisoner immediately if online or schedules for releasing if offline.

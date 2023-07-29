@@ -80,10 +80,12 @@ public class ApiPrisonerManager implements PrisonerManager {
   @Override
   @SuppressWarnings("ConstantConditions")
   public @NotNull Prisoner jailPlayer(final @NotNull UUID uuid, final @NotNull Jail jail,
-      final @NotNull Duration duration) {
+      final @NotNull Duration duration,
+      final @NotNull String reason) {
     Objects.requireNonNull(uuid, "uuid");
     Objects.requireNonNull(jail, "jail");
     Objects.requireNonNull(duration, "duration");
+    Objects.requireNonNull(reason, "reason");
 
     final Instant now = Instant.now();
     final Instant jailedUntil = now.plus(duration);
@@ -91,7 +93,7 @@ public class ApiPrisonerManager implements PrisonerManager {
 
     final OfflinePlayer player = this.plugin.getServer().getOfflinePlayer(uuid);
     try {
-      this.plugin.dataHandler.addJailedPlayer(player, jail.name(), Util.NIL_UUID, "api", duration.getSeconds());
+      this.plugin.dataHandler.addJailedPlayer(player, jail.name(), Util.NIL_UUID, "api", duration.getSeconds(), reason);
     } catch (final IOException exception) {
       throw new RuntimeException(exception);
     }
