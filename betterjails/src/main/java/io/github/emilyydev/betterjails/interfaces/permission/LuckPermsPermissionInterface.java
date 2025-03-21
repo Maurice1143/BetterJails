@@ -1,7 +1,7 @@
 //
 // This file is part of BetterJails, licensed under the MIT License.
 //
-// Copyright (c) 2022 emilyy-dev
+// Copyright (c) 2024 emilyy-dev
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
 // SOFTWARE.
 //
 
-package io.github.emilyydev.betterjails.interfaces;
+package io.github.emilyydev.betterjails.interfaces.permission;
 
 import io.github.emilyydev.betterjails.util.Util;
 import net.luckperms.api.LuckPerms;
@@ -54,6 +54,10 @@ final class LuckPermsPermissionInterface extends AbstractPermissionInterface {
   }
 
   @Override
+  public void close() {
+  }
+
+  @Override
   public CompletionStage<? extends String> fetchPrimaryGroup(final OfflinePlayer player) {
     return this.luckPerms.getUserManager().loadUser(player.getUniqueId()).thenApply(User::getPrimaryGroup);
   }
@@ -80,7 +84,7 @@ final class LuckPermsPermissionInterface extends AbstractPermissionInterface {
           nodeMap.clear(ImmutableContextSet.empty(), NodeType.INHERITANCE::matches);
           nodeMap.add(this.prisonerGroupNode);
         })
-        .thenCompose($ -> {
+        .thenCompose(ignored -> {
           final ActionLogger actionLogger = this.luckPerms.getActionLogger();
           final Action.Builder builder = actionLogger.actionBuilder();
           builder.source(source)
@@ -113,7 +117,7 @@ final class LuckPermsPermissionInterface extends AbstractPermissionInterface {
               .map(InheritanceNode.Builder::build)
               .forEach(nodeMap::add);
         })
-        .thenCompose($ -> {
+        .thenCompose(ignored -> {
           final ActionLogger actionLogger = this.luckPerms.getActionLogger();
           final Action.Builder builder = actionLogger.actionBuilder();
           builder.source(source)

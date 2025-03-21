@@ -1,5 +1,6 @@
-/.idea/
-**/*.iml
-/src/test/
-**/target/
 .idea
+.gradle
+*.iml
+build
+target
+run

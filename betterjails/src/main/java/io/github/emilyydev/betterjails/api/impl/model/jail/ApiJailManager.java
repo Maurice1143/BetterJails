@@ -1,7 +1,7 @@
 //
 // This file is part of BetterJails, licensed under the MIT License.
 //
-// Copyright (c) 2022 emilyy-dev
+// Copyright (c) 2024 emilyy-dev
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,24 +26,24 @@ package io.github.emilyydev.betterjails.api.impl.model.jail;
 
 import com.github.fefo.betterjails.api.model.jail.Jail;
 import com.github.fefo.betterjails.api.model.jail.JailManager;
-import io.github.emilyydev.betterjails.BetterJailsPlugin;
-import io.github.emilyydev.betterjails.util.DataHandler;
+import com.github.fefo.betterjails.api.util.ImmutableLocation;
+import io.github.emilyydev.betterjails.data.JailDataHandler;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
-public class ApiJailManager implements JailManager {
+public final class ApiJailManager implements JailManager {
 
-  private final BetterJailsPlugin plugin;
+  private final JailDataHandler jailData;
 
-  public ApiJailManager(final BetterJailsPlugin plugin) {
-    this.plugin = plugin;
+  public ApiJailManager(final JailDataHandler jailData) {
+    this.jailData = jailData;
   }
 
   @Override
@@ -53,24 +53,25 @@ public class ApiJailManager implements JailManager {
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(location, "location");
 
-    final DataHandler dataHandler = this.plugin.dataHandler;
-    if (dataHandler.getJail(name) != null) {
+    if (this.jailData.getJail(name) != null) {
       throw new IllegalArgumentException("name");
     }
 
     try {
-      dataHandler.addJail(name, location);
-    } catch (final IOException exception) {
-      throw new RuntimeException(exception);
+      this.jailData.addJail(name, ImmutableLocation.copyOf(location)).get();
+    } catch (final InterruptedException ex) {
+      // bleh
+    } catch (final ExecutionException ex) {
+      throw new RuntimeException(ex.getCause());
     }
 
-    return dataHandler.getJail(name);
+    return this.jailData.getJail(name);
   }
 
   @Override
   public @Nullable Jail getJail(final @NotNull String name) {
     Objects.requireNonNull(name, "name");
-    return this.plugin.dataHandler.getJail(name);
+    return this.jailData.getJail(name);
   }
 
   @Override
@@ -78,14 +79,16 @@ public class ApiJailManager implements JailManager {
     Objects.requireNonNull(jail, "jail");
 
     try {
-      this.plugin.dataHandler.removeJail(jail.name());
-    } catch (final IOException exception) {
-      throw new RuntimeException(exception);
+      this.jailData.removeJail(jail).get();
+    } catch (final InterruptedException ex) {
+      // bleh
+    } catch (final ExecutionException ex) {
+      throw new RuntimeException(ex.getCause());
     }
   }
 
   @Override
   public @NotNull @UnmodifiableView Collection<@NotNull Jail> getAllJails() {
-    return Collections.unmodifiableCollection(this.plugin.dataHandler.getJails().values());
+    return Collections.unmodifiableCollection(this.jailData.getJails().values());
   }
 }

@@ -1,7 +1,7 @@
 //
 // This file is part of BetterJails, licensed under the MIT License.
 //
-// Copyright (c) 2022 emilyy-dev
+// Copyright (c) 2024 emilyy-dev
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,17 +22,26 @@
 // SOFTWARE.
 //
 
-package io.github.emilyydev.betterjails.interfaces;
+package io.github.emilyydev.betterjails.interfaces.storage;
 
-abstract class AbstractPermissionInterface implements PermissionInterface {
+import com.github.fefo.betterjails.api.model.jail.Jail;
+import io.github.emilyydev.betterjails.api.impl.model.prisoner.ApiPrisoner;
 
-  private final String prisonerGroup;
+import java.util.Map;
+import java.util.UUID;
 
-  AbstractPermissionInterface(final String prisonerGroup) {
-    this.prisonerGroup = prisonerGroup;
-  }
+public interface StorageInterface {
 
-  protected final String prisonerGroup() {
-    return this.prisonerGroup;
-  }
+  void savePrisoner(ApiPrisoner prisoner) throws Exception;
+  void savePrisoners(Map<UUID, ApiPrisoner> prisoners) throws Exception;
+  void deletePrisoner(ApiPrisoner prisoner) throws Exception;
+  Map<UUID, ApiPrisoner> loadPrisoners() throws Exception;
+
+  void saveJail(Jail jail) throws Exception;
+  void saveJails(Map<String, Jail> jails) throws Exception;
+  void deleteJail(Jail jail) throws Exception;
+  Map<String, Jail> loadJails() throws Exception;
+
+  // TODO(rymiel): There's asymmetry between these: ApiPrisoner vs Jail, this is because not all data needed here
+  //   is stored in Prisoner. Perhaps some stuff from ApiPrisoner should be exposed in Prisoner.
 }

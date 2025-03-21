@@ -1,7 +1,7 @@
 //
 // This file is part of BetterJails, licensed under the MIT License.
 //
-// Copyright (c) 2022 emilyy-dev
+// Copyright (c) 2024 emilyy-dev
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,20 +27,29 @@ package io.github.emilyydev.betterjails.test;
 import be.seeseemelk.mockbukkit.MockBukkit;
 import be.seeseemelk.mockbukkit.ServerMock;
 import be.seeseemelk.mockbukkit.entity.PlayerMock;
+import com.github.fefo.betterjails.api.event.jail.JailCreateEvent;
 import com.github.fefo.betterjails.api.event.prisoner.PlayerImprisonEvent;
 import com.github.fefo.betterjails.api.event.prisoner.PrisonerReleaseEvent;
+import com.github.fefo.betterjails.api.model.jail.Jail;
+import com.github.fefo.betterjails.api.util.ImmutableLocation;
 import io.github.emilyydev.betterjails.BetterJailsPlugin;
 import io.github.emilyydev.betterjails.util.Util;
-import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Objects;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 public class EventBusTest {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventBusTest.class);
 
   private static ServerMock server = null;
   private static BetterJailsPlugin plugin = null;
@@ -48,12 +57,15 @@ public class EventBusTest {
   @BeforeAll
   public static void prepare() throws IOException {
     server = MockBukkit.mock();
+    server.addSimpleWorld("world");
     try (final InputStream pluginDescriptorStream = BetterJailsPlugin.class.getResourceAsStream("/plugin.yml")) {
-      plugin = MockBukkit.loadWith(BetterJailsPlugin.class, Objects.requireNonNull(pluginDescriptorStream, "descriptor stream"));
+      plugin = MockBukkit.loadWith(BetterJailsPlugin.class, Objects.requireNonNull(pluginDescriptorStream, "descriptor stream"), "do not enable bstats");
     }
 
+    plugin.eventBus().subscribe(plugin, JailCreateEvent.class, EventBusTest::jailCreate);
     plugin.eventBus().subscribe(plugin, PlayerImprisonEvent.class, EventBusTest::playerImprison);
     plugin.eventBus().subscribe(plugin, PrisonerReleaseEvent.class, EventBusTest::prisonerRelease);
+    server.getScheduler().performOneTick();
   }
 
   @AfterAll
@@ -63,22 +75,29 @@ public class EventBusTest {
     MockBukkit.unmock();
   }
 
+  private static void jailCreate(final JailCreateEvent event) {
+    LOGGER.info("event = {}", event);
+    LOGGER.info("event.jailName() = {}", assertDoesNotThrow(event::jailName));
+    LOGGER.info("event.jailLocation() = {}", assertDoesNotThrow(event::jailLocation));
+  }
+
   private static void playerImprison(final PlayerImprisonEvent event) {
-    plugin.getLogger().info("event = " + event);
-    plugin.getLogger().info("event.prisoner() = " + event.prisoner());
+    LOGGER.info("event = {}", event);
+    LOGGER.info("event.prisoner() = {}", assertDoesNotThrow(event::prisoner));
   }
 
   private static void prisonerRelease(final PrisonerReleaseEvent event) {
-    plugin.getLogger().info("event = " + event);
-    plugin.getLogger().info("event.prisoner() = " + event.prisoner());
+    LOGGER.info("event = {}", event);
+    LOGGER.info("event.prisoner() = {}", assertDoesNotThrow(event::prisoner));
   }
 
   @Test
-  public void test() throws IOException {
-    plugin.dataHandler.addJail("jail0", Vector.getRandom().toLocation(server.addSimpleWorld("world0")));
+  public void test() {
+    assertDoesNotThrow(() -> plugin.jailData().addJail("jail0", ImmutableLocation.at(server.addSimpleWorld("world0"), 0, 0, 0)));
 
+    final Jail jail = plugin.jailData().getJail("jail0");
     final PlayerMock player = server.addPlayer();
-    plugin.dataHandler.addJailedPlayer(player, "jail0", Util.NIL_UUID, "test", 3600L, "super duper test");
-    plugin.dataHandler.releaseJailedPlayer(player.getUniqueId(), Util.NIL_UUID, "test");
+    assertDoesNotThrow(() -> plugin.prisonerData().addJailedPlayer(player, jail, Util.NIL_UUID, "test", Duration.ofHours(1L), null, false));
+    assertDoesNotThrow(() -> plugin.prisonerData().releaseJailedPlayer(player, Util.NIL_UUID, "test", false));
   }
 }

@@ -1,7 +1,8 @@
 //
 // This file is part of BetterJails, licensed under the MIT License.
 //
-// Copyright (c) 2022 emilyy-dev
+// Copyright (c) 2024 emilyy-dev
+// Copyright (c) 2024 Emilia Kond
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,25 +26,27 @@
 package io.github.emilyydev.betterjails.listeners;
 
 import com.earth2me.essentials.User;
-import com.github.fefo.betterjails.api.model.jail.Jail;
+import com.github.fefo.betterjails.api.util.ImmutableLocation;
 import io.github.emilyydev.betterjails.BetterJailsPlugin;
-import io.github.emilyydev.betterjails.util.DataHandler;
+import io.github.emilyydev.betterjails.UpdateChecker;
+import io.github.emilyydev.betterjails.api.impl.model.prisoner.ApiPrisoner;
+import io.github.emilyydev.betterjails.config.SubCommandsConfiguration;
 import io.github.emilyydev.betterjails.util.Util;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.plugin.PluginManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.spigotmc.event.player.PlayerSpawnLocationEvent;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.UUID;
-import java.util.logging.Logger;
 
-public class PlayerListeners implements Listener {
+public final class PlayerListeners implements Listener {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger("BetterJails");
 
   public static PlayerListeners create(final BetterJailsPlugin plugin) {
     return new PlayerListeners(plugin);
@@ -58,8 +61,8 @@ public class PlayerListeners implements Listener {
   public void register() {
     final PluginManager pluginManager = this.plugin.getServer().getPluginManager();
     pluginManager.registerEvent(
-        PlayerJoinEvent.class, this, EventPriority.HIGH,
-        (l, e) -> playerJoin((PlayerJoinEvent) e), this.plugin
+        PlayerSpawnLocationEvent.class, this, EventPriority.HIGH,
+        (l, e) -> playerSpawn((PlayerSpawnLocationEvent) e), this.plugin
     );
     pluginManager.registerEvent(
         PlayerQuitEvent.class, this, EventPriority.NORMAL,
@@ -71,42 +74,50 @@ public class PlayerListeners implements Listener {
     );
   }
 
-  private void playerJoin(final PlayerJoinEvent event) {
+  private void playerSpawn(final PlayerSpawnLocationEvent event) {
     final Player player = event.getPlayer();
     final UUID uuid = player.getUniqueId();
 
-    if (this.plugin.dataHandler.isPlayerJailed(uuid)) {
-      final YamlConfiguration jailedPlayer = this.plugin.dataHandler.retrieveJailedPlayer(uuid);
-      if (!jailedPlayer.getBoolean(DataHandler.IS_RELEASED_FIELD) && !player.hasPermission("betterjails.jail.exempt")) {
-        this.plugin.dataHandler.loadJailedPlayer(uuid, jailedPlayer);
-        try {
-          final String jailName = jailedPlayer.getString(DataHandler.JAIL_FIELD);
-          if (jailName != null) {
-            this.plugin.dataHandler.addJailedPlayer(
-                player, jailName, Util.NIL_UUID, null, this.plugin.dataHandler.getSecondsLeft(uuid, 0), this.plugin.dataHandler.getReason(uuid, "")
-            );
-          } else {
-            this.plugin.dataHandler.addJailedPlayer(
-                player, this.plugin.dataHandler.getJails().values().iterator().next().name(), Util.NIL_UUID, null,
-                this.plugin.dataHandler.getSecondsLeft(uuid, 0), this.plugin.dataHandler.getReason(uuid, "")
-            );
-          }
-
-        } catch (final IOException exception) {
-          exception.printStackTrace();
+    ApiPrisoner prisoner = this.plugin.prisonerData().getPrisoner(uuid);
+    if (prisoner != null) {
+      if (prisoner.released() || player.hasPermission("betterjails.jail.exempt")) {
+        // The player has been released...
+        // put them back where they were if there is no release location, and at the release location otherwise
+        final ImmutableLocation lastLocation = prisoner.lastLocationNullable();
+        final ImmutableLocation releaseLocation = prisoner.jail().releaseLocation();
+        if (releaseLocation != null) {
+          event.setSpawnLocation(releaseLocation.mutable());
+        } else if (lastLocation != null) {
+          event.setSpawnLocation(lastLocation.mutable());
         }
+
+        this.plugin.prisonerData().releaseJailedPlayer(player, Util.NIL_UUID, null, false);
       } else {
-        this.plugin.dataHandler.releaseJailedPlayer(uuid, Util.NIL_UUID, null);
+        if (prisoner.unknownLastLocation()) {
+          prisoner = prisoner.withLastLocation(ImmutableLocation.copyOf(player.getLocation()));
+
+          // Must be delayed by 1 tick, otherwise player.isOnline() is false and stuff explodes
+          final String jailedBy = prisoner.jailedBy() == null ? "" : prisoner.jailedBy();
+          this.plugin.getServer().getScheduler().runTaskLater(this.plugin, () -> {
+            final SubCommandsConfiguration.SubCommands subCommands = this.plugin.subCommands().onJail();
+            subCommands.executeAsPrisoner(this.plugin.getServer(), player, jailedBy);
+            subCommands.executeAsConsole(this.plugin.getServer(), player, jailedBy);
+          }, 1);
+        }
+
+        prisoner = prisoner.withTimeRunning();
+        this.plugin.prisonerData().savePrisoner(prisoner).exceptionally(error -> {
+          LOGGER.error("An error occurred saving data for prisoner {}", uuid, error);
+          return null;
+        });
+        event.setSpawnLocation(prisoner.jail().location().mutable());
       }
     }
 
-    if (
-        player.hasPermission("betterjails.receivebroadcast") &&
-        !this.plugin.getDescription().getVersion().endsWith("-SNAPSHOT")
-    ) {
+    if (player.hasPermission("betterjails.receivebroadcast")) {
       this.plugin.getServer().getScheduler().runTaskLater(this.plugin, () ->
-          Util.checkVersion(this.plugin, 76001, version -> {
-            if (!this.plugin.getDescription().getVersion().equalsIgnoreCase(version.substring(1))) {
+          UpdateChecker.fetchRemoteVersion(this.plugin).thenAccept(version -> {
+            if (!this.plugin.getDescription().getVersion().equals(version)) {
               player.sendMessage(Util.color("&7[&bBetterJails&7] &3New version &b%s &3for &bBetterJails &3available.", version));
             }
           }), 100L);
@@ -116,46 +127,33 @@ public class PlayerListeners implements Listener {
   private void playerQuit(final PlayerQuitEvent event) {
     final Player player = event.getPlayer();
     final UUID uuid = player.getUniqueId();
+    ApiPrisoner prisoner = this.plugin.prisonerData().getPrisoner(uuid);
+    if (prisoner == null) {
+      return;
+    }
 
-    if (this.plugin.dataHandler.isPlayerJailed(uuid)) {
-      this.plugin.dataHandler.updateSecondsLeft(uuid);
-      final YamlConfiguration jailedPlayer = this.plugin.dataHandler.retrieveJailedPlayer(uuid);
-      try {
-        jailedPlayer.save(new File(this.plugin.dataHandler.playerDataFolder, uuid + ".yml"));
-        if (!this.plugin.getConfig().getBoolean("offlineTime")) {
-          this.plugin.dataHandler.unloadJailedPlayer(uuid);
-          if (this.plugin.essentials != null) {
-            final User user = this.plugin.essentials.getUser(uuid);
-            user.setJailTimeout(0L);
-            user.setJailed(true);
-          }
-        }
-      } catch (final IOException exception) {
-        exception.printStackTrace();
+    if (!this.plugin.configuration().considerOfflineTime()) {
+      prisoner = prisoner.withTimePaused();
+      if (this.plugin.essentials != null) {
+        final User user = this.plugin.essentials.getUser(uuid);
+        user.setJailTimeout(0L);
+        user.setJailed(true);
       }
     }
+
+    this.plugin.prisonerData().savePrisoner(prisoner).exceptionally(error -> {
+      LOGGER.error("An error occurred saving data for prisoner {}", uuid, error);
+      return null;
+    });
   }
 
   private void playerRespawn(final PlayerRespawnEvent event) {
     final Player player = event.getPlayer();
     final UUID uuid = player.getUniqueId();
+    final ApiPrisoner prisoner = this.plugin.prisonerData().getPrisoner(uuid);
 
-    this.plugin.getServer().getScheduler().runTaskLater(this.plugin, () -> {
-      if (this.plugin.dataHandler.isPlayerJailed(uuid)) {
-        final YamlConfiguration jailedPlayer = this.plugin.dataHandler.retrieveJailedPlayer(uuid);
-        final Jail jail = this.plugin.dataHandler.getJail(jailedPlayer.getString(DataHandler.JAIL_FIELD));
-        if (jail != null) {
-          player.teleport(jail.location().mutable());
-        } else {
-          final Jail nextJail = this.plugin.dataHandler.getJails().values().iterator().next();
-          player.teleport(nextJail.location().mutable());
-
-          final Logger logger = this.plugin.getLogger();
-          logger.warning("Value " + jailedPlayer.getString(DataHandler.JAIL_FIELD) + " for option jail on jailed played " + uuid + " is INCORRECT!");
-          logger.warning("That jail does not exist!");
-          logger.warning("Teleporting player to jail " + nextJail.name() + "!");
-        }
-      }
-    }, 1L);
+    if (prisoner != null) {
+      event.setRespawnLocation(prisoner.jail().location().mutable());
+    }
   }
 }

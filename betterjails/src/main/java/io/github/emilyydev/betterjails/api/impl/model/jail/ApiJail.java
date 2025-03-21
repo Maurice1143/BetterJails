@@ -1,7 +1,8 @@
 //
 // This file is part of BetterJails, licensed under the MIT License.
 //
-// Copyright (c) 2022 emilyy-dev
+// Copyright (c) 2024 emilyy-dev
+// Copyright (c) 2024 Emilia Kond
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,19 +27,21 @@ package io.github.emilyydev.betterjails.api.impl.model.jail;
 
 import com.github.fefo.betterjails.api.model.jail.Jail;
 import com.github.fefo.betterjails.api.util.ImmutableLocation;
-import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
-public class ApiJail implements Jail {
+public final class ApiJail implements Jail {
 
   private final String name;
-  private ImmutableLocation location;
+  private volatile ImmutableLocation location;
+  private volatile ImmutableLocation releaseLocation;
 
-  public ApiJail(final String name, final Location location) {
+  public ApiJail(final String name, final ImmutableLocation location, final ImmutableLocation releaseLocation) {
     this.name = name;
-    this.location = ImmutableLocation.copyOf(location);
+    this.location = location;
+    this.releaseLocation = releaseLocation;
   }
 
   @Override
@@ -50,6 +53,16 @@ public class ApiJail implements Jail {
   public void location(final @NotNull ImmutableLocation location) {
     Objects.requireNonNull(location, "location");
     this.location = location;
+  }
+
+  @Override
+  public @Nullable ImmutableLocation releaseLocation() {
+    return this.releaseLocation;
+  }
+
+  @Override
+  public void releaseLocation(final @Nullable ImmutableLocation location) {
+    this.releaseLocation = location;
   }
 
   @Override
@@ -72,6 +85,10 @@ public class ApiJail implements Jail {
 
   @Override
   public String toString() {
-    return "Jail(" + '"' + this.name + '"' + ',' + this.location + ')';
+    return "Jail["
+        + "name=" + this.name
+        + ", location=" + this.location
+        + ", releaseLocation=" + this.releaseLocation
+        + ']';
   }
 }

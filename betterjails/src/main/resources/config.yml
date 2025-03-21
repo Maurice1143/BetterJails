@@ -27,43 +27,45 @@ messages:
   # · {player}: player that executes the command.
   # · {jail}: jail name to where the prisoner will be sent.
   # · {time}: time argument provided.
-  # · {reason}: reason argument provided.
-  jailSuccess: "&c{prisoner} &6has been jailed by &c{player} &6for &c{time}&6. Reason: {reason}"
-  jailInfoPrisoner: "&6You got jailed by {player} for {time} because of {reason}"
+  # · {reason}: imprisonment reason.
+  jailSuccess: "&c{prisoner} &6has been jailed by &c{player} &6for &c{time}&6."
   jailFailedPlayerNeverJoined: "&cPlayer &4{prisoner} &cnever joined this server."
   jailFailedPlayerExempt: "&4{prisoner} &ccannot be jailed."
-  jailFailedJailNotFound: "&cJail &4{jail} &cnot found."
-  jailFailedTimeIncorrect: "&cThe time provided is not valid."
-  jailCmdUsage: "&cUsage: /jail <player> <jail> <time> <reason>"
-  # Placeholders for /jail info:
-  # · {prisoner}: player to retrieve the status and info.
-  # · {player}: player that executes the command.
-  infoFailedPlayerNotJailed: "&6The player you are requesting the information from is not currently serving a sentence."
-  infoFailedPlayerNeverJoined: "&6Player &c{prisoner} &6never joined this server."
-  infoCmdUsage: "&cUsage: /jail info <player>"
-  ownInfoFailedPlayerNotJailed: "&6You are not in jail."
-  ownInfoCmdUsage: "§cUsage: /jail info"
+
+  # Generic error messages when resolving a jail or prisoner for a command.
+  # Available placeholders:
+  # · {jail}: non-existent jail attempted to resolve.
+  non-existent-jail: "&cJail &4{jail} &cdoesn't exist"
+  # · {prisoner}: non-existent prisoner attempted to resolve.
+  player-not-imprisoned: "&4{prisoner} &cis not imprisoned"
 
   # Placeholders for /unjail:
   # · {prisoner}: player to be unjailed.
   # · {player}: player that executes the command.
   unjailSuccess: "&c{prisoner} &6has been unjailed by &c{player}&6."
-  unjailInfoPrisoner: "You got unjailed by {player}"
-  unjailFailedPlayerNotJailed: "&c{prisoner} &6could not be unjailed, player wasn't jailed."
-  unjailFailedPlayerNeverJoined: "&6Player &c{prisoner} &6never joined this server."
 
-  # Placeholders for /setjail and /deljail:
+  # Placeholders for /setjail, /modjail and /deljail:
   # · {player}: player that executes the command.
   # · {jail}: jail name to be added/removed.
-  setjailFromConsole: "&cOnly players can set jails!"
   setjailSuccess: "&6Jail added successfully!"
+  save-jail-failed: "&cAn error occurred while saving data for jail &4{jail}&c. Check the console for errors."
+  modify-jail-success: "&6Jail modified successfully!"
+  modify-jail-failed: "&cAn error occurred while modifying data for jail &4{jail}&c. Check the console for errors."
   deljailSuccess: "&6Jail removed successfully!"
-  deljailFailed: "&cThat jail does not exist!"
+  delete-jail-failed: "&cAn error occurred while deleting data for jail &4{jail}&c. Check the console for errors."
+
+  # Placeholders for /jailtime:
+  # · {prisoner}: player whose sentence time will be modified.
+  # · {player}: player that executes the command.
+  # · {time}: new sentence time.
+  jailtime-success: "&6Sentence time of &c{prisoner} &6is now &c{time}&6."
 
   # Placeholders for /betterjails reload and /betterjails save:
   # · {player}: player that executes the command.
   reload: "&6Files reloaded successfully!"
+  reload-failed: "&cAn error occurred while reloading plugin data. Check the console for errors."
   save: "&6Files saved successfully!"
+  save-all-failed: "&cAn error occurred while saving plugin data. Check the console for errors."
 
   jailInfoText: "&7Info for jailed player:\n\n
       &7· Name: &f{prisoner}\n
@@ -82,6 +84,8 @@ messages:
       &7· Jailed by: &f{player}\n
       &7· Reason: &f{reason}\n
     "
+
+
 
   # Placeholders for /jails premessages:
   # · None :(

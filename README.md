@@ -25,15 +25,19 @@ been online for the required time.
 
 * `/setjail <jail name>` / Adds a new jail location where the command is executed.
 * `/deljail <jail name>` / Removes a jail location from the jails list.
+* `/modjail <jail name> releaselocation set` / Sets the location where the command is executed to be the
+  "release location" of the jail. This is where players will be put when they are released from that
+  specific jail. This is optional. If not provided, the player will be released to wherever they were
+  before imprisonment.
+* `/modjail <jail name> releaselocation clear` / Clears the "release location" of the jail.
 * `/jails` / Prints a list of available jails.
-* `/jail <player> <jail> <time>` / Sends a player to the provided jail, and won't be teleported back
-  until the time provided has passed. Time format must match against this
-  rule: `^(\d{1,10}(\.\d{1,2})?)[yMwdhms]$`. If all that sounds like gibberish, you can
-  check [here](https://onlinetexttools.com/generate-text-from-regex?regex=%5E(%5Cd%7B1%2C5%7D(%5C.%5Cd%7B1%2C2%7D)%3F)%5ByMwdhms%5D%24&results=10)
-  for some random examples of valid times.
+* `/jail <player> <jail> <time> [reason]` / Sends a player to the provided jail, and won't be teleported back
+  until the time provided has passed. Time format matches inputs in the format of `2d15h7m12s`.
+  The command optionally takes an imprisonment reason.
 * `/jail info <player>` / Will print out in the chat some information about the jailed player stored
   in the player data file.
 * `/unjail <player>` / Teleports a jailed player back to where they were when jailed.
+* `/jailtime <player> (add|subtract|set) <time>` / Increase, reduce, or set the sentence time of a prisoner.
 * `/betterjails` / Prints the version of the plugin.
 * `/betterjails reload` / Reloads files into memory.
 * `/betterjails save` / Saves files from memory.
@@ -49,7 +53,9 @@ All permissions default to operators only unless otherwise noted.
 * `betterjails.jails` / Lets the user execute the `/jails` command.
 * `betterjails.unjail` / Lets the user execute the `/unjail` command.
 * `betterjails.setjail` / Lets the user execute the `/setjail` command.
+* `betterjails.modjail` / Lets the user execute the `/modjail` command.
 * `betterjails.deljail` / Lets the user execute the `/deljail` command.
+* `betterjails.jailtime` / Lets the user execute the `/jailtime` command.
 * `betterjails.receivebroadcast` / Prints in the user's chat when a player has been jailed/unjailed.
 * `betterjails.betterjails` / Lets the user execute the `/betterjails` command. Permission defaults
   to true for all users.
@@ -127,7 +133,7 @@ The [`BetterJails` interface](https://github.com/emilyy-dev/BetterJails/blob/v1/
 * A [`JailManager`](https://github.com/emilyy-dev/BetterJails/blob/v1/api/src/main/java/com/github/fefo/betterjails/api/model/jail/JailManager.java) in which you can create and delete jails
 * An [`EventBus`](https://github.com/emilyy-dev/BetterJails/blob/v1/api/src/main/java/com/github/fefo/betterjails/api/event/EventBus.java) where you can subscribe (or "listen") to certain events dispatched throughout the functioning of the plugin.
 
-You can get an instance of the `BetterJails` interface like so:
+You can get an instance of the `BetterJails` interface through the services manager as follows:
 
 ````java
 public class MyPlugin extends JavaPlugin {
@@ -140,32 +146,25 @@ public class MyPlugin extends JavaPlugin {
 
   @Override
   public void onEnable() {
-    this.betterJails = Bukkit.getServicesManager().load(BetterJails.class);
+    this.betterJails = getServer().getServicesManager().load(BetterJails.class);
   }
 }
 ````
 
 Don't forget to add `"BetterJails"` as `depend`/`softdepend` to your `plugin.yml` :)
 
-The API is published in OSS Sonatype as it is currently in a snapshot state (and will be for the
-rest of v1 lifecycle). Importing the BetterJails API to your project depends on how you build your
-plugin.
+The API is published in Maven Central Repository and snapshots are published to OSS Sonatype Snapshots repository.
+Importing the BetterJails API to your project depends on how you build your plugin.
 
 
 ### Maven
 
-If you are using Maven, you need to add the (new) Sonatype repository to your `pom.xml`
-```xml
-<repository>
-    <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
-</repository>
-```
-You also need to add the dependency itself that will be pulled from Sonatype
+If you are using Maven, all you have to do is add the dependency itself that will be pulled from Central
 ```xml
 <dependency>
     <groupId>io.github.emilyy-dev</groupId>
     <artifactId>betterjails-api</artifactId>
-    <version>1.5-SNAPSHOT</version>
+    <version>1.5</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -173,18 +172,18 @@ You also need to add the dependency itself that will be pulled from Sonatype
 
 ### Gradle
 
-Same principle applies if you are using Gradle to build your plugin:
+Same principle applies if you are using Gradle to build your plugin, but you need to specify the `mavenCentral()` repo:
 
 
 ##### Groovy DSL
 
 ```groovy
 repositories {
-    maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
+    mavenCentral()
 }
 
 dependencies {
-    compileOnly 'io.github.emilyy-dev:betterjails-api:1.5-SNAPSHOT'
+    compileOnly 'io.github.emilyy-dev:betterjails-api:1.5'
 }
 ```
 
@@ -193,21 +192,21 @@ dependencies {
 
 ```kotlin
 repositories {
-    maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+    mavenCentral()
 }
 
 dependencies {
-    compileOnly("io.github.emilyy-dev:betterjails-api:1.5-SNAPSHOT")
+    compileOnly("io.github.emilyy-dev:betterjails-api:1.5")
 }
 ```
 
 
 ### Manually
 
-If you want to manually add the API dependency to your classpath, you can obtain the jar by [downloading it from here](https://s01.oss.sonatype.org/content/repositories/snapshots/io/github/emilyy-dev/betterjails-api/1.5-SNAPSHOT/).
+If you want to manually add the API dependency to your classpath, you can obtain the jar by [downloading it from here](https://repo1.maven.org/maven2/io/github/emilyy-dev/betterjails-api/1.5/).
 
 
 ## Compiling
 
-You can compile this plugin by cloning the repository and running `mvn package` in the root
-directory of the project, you can find the final jar in `/betterjails/target/betterjails-1.5-SNAPSHOT.jar`.
+You can compile this plugin by cloning the repository and running `./gradlew build` in the root
+directory of the project, you can find the final jar in `./betterjails/build/libs/betterjails-1.5.jar`.

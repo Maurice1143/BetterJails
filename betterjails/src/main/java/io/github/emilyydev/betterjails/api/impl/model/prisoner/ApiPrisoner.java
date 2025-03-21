@@ -1,7 +1,7 @@
 //
 // This file is part of BetterJails, licensed under the MIT License.
 //
-// Copyright (c) 2022 emilyy-dev
+// Copyright (c) 2024 emilyy-dev
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,17 +27,19 @@ package io.github.emilyydev.betterjails.api.impl.model.prisoner;
 import com.github.fefo.betterjails.api.model.jail.Jail;
 import com.github.fefo.betterjails.api.model.prisoner.Prisoner;
 import com.github.fefo.betterjails.api.util.ImmutableLocation;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 
-public class ApiPrisoner implements Prisoner {
+public final class ApiPrisoner implements Prisoner {
 
   private final UUID uuid;
   private final String name;
@@ -45,8 +47,11 @@ public class ApiPrisoner implements Prisoner {
   private final Set<String> parentGroups;
   private final Jail jail;
   private final String jailedBy;
-  private final Instant jailedUntil;
+  private final SentenceExpiry expiry;
+  private final Duration totalSentenceTime;
+  private final String imprisonmentReason;
   private final ImmutableLocation lastLocation;
+  private final boolean unknownLocation; // TODO(v2): lastLocation should just be nullable
 
   public ApiPrisoner(
       final UUID uuid,
@@ -55,8 +60,11 @@ public class ApiPrisoner implements Prisoner {
       final Collection<? extends String> parentGroups,
       final Jail jail,
       final String jailedBy,
-      final Instant jailedUntil,
-      final ImmutableLocation lastLocation
+      final SentenceExpiry expiry,
+      final Duration totalSentenceTime,
+      final String imprisonmentReason,
+      final ImmutableLocation lastLocation,
+      final boolean unknownLocation
   ) {
     this.uuid = uuid;
     this.name = name;
@@ -64,8 +72,11 @@ public class ApiPrisoner implements Prisoner {
     this.parentGroups = ImmutableSet.copyOf(parentGroups);
     this.jail = jail;
     this.jailedBy = jailedBy;
-    this.jailedUntil = jailedUntil;
+    this.expiry = expiry;
+    this.totalSentenceTime = totalSentenceTime;
+    this.imprisonmentReason = imprisonmentReason;
     this.lastLocation = lastLocation;
+    this.unknownLocation = unknownLocation;
   }
 
   @Override
@@ -76,6 +87,10 @@ public class ApiPrisoner implements Prisoner {
   @Override
   public @Nullable String name() {
     return this.name;
+  }
+
+  public @NotNull String nameOr(final String fallback) {
+    return MoreObjects.firstNonNull(this.name, fallback);
   }
 
   @Override
@@ -100,12 +115,71 @@ public class ApiPrisoner implements Prisoner {
 
   @Override
   public @NotNull Instant jailedUntil() {
-    return this.jailedUntil;
+    return released() ? Instant.MIN : this.expiry.expiryDate();
   }
 
   @Override
+  public @NotNull Duration totalSentenceTime() {
+    return this.totalSentenceTime;
+  }
+
+  @Override
+  public @Nullable String imprisonmentReason() {
+    return this.imprisonmentReason;
+  }
+
+  // TODO(v2): make nullable
+  @Override
   public @NotNull ImmutableLocation lastLocation() {
     return this.lastLocation;
+  }
+
+  public @Nullable ImmutableLocation lastLocationNullable() {
+    return this.unknownLocation ? null : this.lastLocation;
+  }
+
+  /**
+   * True if this prisoner isn't actually imprisoned any more and will be released when they join the server.
+   */
+  public boolean released() {
+    return timeLeft().isZero() || timeLeft().isNegative();
+  }
+
+  @Override
+  public boolean unknownLastLocation() {
+    return this.unknownLocation;
+  }
+
+  public @NotNull Duration timeLeft() {
+    return this.expiry.timeLeft();
+  }
+
+  public SentenceExpiry expiry() {
+    return this.expiry;
+  }
+
+  public @NotNull ApiPrisoner withReleased() {
+    return new ApiPrisoner(this.uuid, this.name, this.primaryGroup, this.parentGroups, this.jail, this.jailedBy, SentenceExpiry.of(Duration.ZERO), this.totalSentenceTime, this.imprisonmentReason, this.lastLocation, this.unknownLocation);
+  }
+
+  public @NotNull ApiPrisoner withLastLocation(final ImmutableLocation location) {
+    return new ApiPrisoner(this.uuid, this.name, this.primaryGroup, this.parentGroups, this.jail, this.jailedBy, this.expiry, this.totalSentenceTime, this.imprisonmentReason, location, false);
+  }
+
+  /**
+   * Creates a copy of this prisoner, but with their sentence time running if it wasn't already.
+   * This method swaps out {@link #timeLeft} for {@link #jailedUntil}
+   */
+  public @NotNull ApiPrisoner withTimeRunning() {
+    return new ApiPrisoner(this.uuid, this.name, this.primaryGroup, this.parentGroups, this.jail, this.jailedBy, SentenceExpiry.of(jailedUntil()), this.totalSentenceTime, this.imprisonmentReason, this.lastLocation, this.unknownLocation);
+  }
+
+  /**
+   * Creates a copy of this prisoner, but with their sentence time paused if it wasn't already.
+   * This method swaps out {@link #jailedUntil} for {@link #timeLeft}
+   */
+  public @NotNull ApiPrisoner withTimePaused() {
+    return new ApiPrisoner(this.uuid, this.name, this.primaryGroup, this.parentGroups, this.jail, this.jailedBy, SentenceExpiry.of(timeLeft()), this.totalSentenceTime, this.imprisonmentReason, this.lastLocation, this.unknownLocation);
   }
 
   @Override
@@ -129,8 +203,10 @@ public class ApiPrisoner implements Prisoner {
            ',' + this.parentGroups +
            ',' + this.jail +
            ',' + '"' + this.jailedBy + '"' +
-           ',' + this.jailedUntil +
+           ',' + this.expiry +
+           ',' + this.totalSentenceTime +
            ',' + this.lastLocation +
+           ',' + this.unknownLocation +
            ')';
   }
 }

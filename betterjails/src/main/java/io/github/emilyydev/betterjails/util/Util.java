@@ -1,7 +1,7 @@
 //
 // This file is part of BetterJails, licensed under the MIT License.
 //
-// Copyright (c) 2022 emilyy-dev
+// Copyright (c) 2024 emilyy-dev
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,20 +24,13 @@
 
 package io.github.emilyydev.betterjails.util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
-import org.bukkit.plugin.Plugin;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.stream.Collector;
 
 public interface Util {
@@ -50,27 +43,26 @@ public interface Util {
           ImmutableSet.Builder::build
       );
 
+  Collector<Object, ImmutableList.Builder<Object>, ImmutableList<Object>> IMMUTABLE_LIST_COLLECTOR =
+      Collector.of(
+          ImmutableList::builder,
+          ImmutableList.Builder::add,
+          (first, second) -> first.addAll(second.build()),
+          ImmutableList.Builder::build
+      );
+
   UUID NIL_UUID = new UUID(0L, 0L);
 
   static UUID uuidOrNil(final CommandSender source) {
     return source instanceof Entity ? ((Entity) source).getUniqueId() : NIL_UUID;
   }
 
-  static String color(final String text, final Object... args) {
-    return ChatColor.translateAlternateColorCodes('&', String.format(text, args));
+  static String color(final String text) {
+    return ChatColor.translateAlternateColorCodes('&', text);
   }
 
-  static void checkVersion(final Plugin plugin, final int id, final Consumer<? super String> consumer) {
-    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-      try (
-          final InputStream stream = new URL("https://api.spigotmc.org/legacy/update.php?resource=" + id).openStream();
-          final BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))
-      ) {
-        consumer.accept(reader.readLine());
-      } catch (final IOException exception) {
-        plugin.getLogger().warning("Cannot look for updates: " + exception.getMessage());
-      }
-    });
+  static String color(final String text, final Object... args) {
+    return ChatColor.translateAlternateColorCodes('&', String.format(text, args));
   }
 
   static String convertStringArrayToString(String[] arr, String delimiter) {
@@ -84,5 +76,14 @@ public interface Util {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   static <T> Collector<T, ImmutableSet.Builder<T>, ImmutableSet<T>> toImmutableSet() {
     return (Collector) IMMUTABLE_SET_COLLECTOR;
+  }
+
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  static <T> Collector<T, ImmutableList.Builder<T>, ImmutableList<T>> toImmutableList() {
+    return (Collector) IMMUTABLE_LIST_COLLECTOR;
+  }
+
+  static String removeBracesFromMatchedPlaceholderPleaseAndThankYou(final String in) {
+    return in.substring(1, in.length() - 1);
   }
 }
